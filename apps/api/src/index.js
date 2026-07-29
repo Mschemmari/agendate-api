@@ -31,8 +31,8 @@ app.use((err, _req, res, _next) => {
 
 async function start() {
   await connectDb();
-  app.listen(PORT, () => {
-    console.log(`[api] Listening on http://localhost:${PORT}`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[api] Listening on port ${PORT}`);
   });
 }
 
