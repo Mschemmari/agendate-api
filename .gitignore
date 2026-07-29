@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs & OS
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+
+# Build / tooling
+dist/
+build/
+coverage/
+.expo/
+web-build/
+expo-env.d.ts
+*.tsbuildinfo
+
+# Mobile native (regenerate with `npx expo prebuild` / `expo run:*`)
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.kotlin/
+apps/mobile/*.orig.*
+
+# Keys / signing
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Editor / local
+.idea/
+.vscode/
+apps/mobile/.claude/
