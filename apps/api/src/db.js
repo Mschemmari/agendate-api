@@ -18,8 +18,20 @@ async function connectDb() {
     console.log('[db] Connecting to', uri.replace(/\/\/.*@/, '//***@'));
   }
 
-  await mongoose.connect(uri);
-  console.log('[db] Connected');
+  try {
+    await mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 15000,
+    });
+    console.log('[db] Connected');
+  } catch (err) {
+    console.error('[db] Connection failed:', err.message);
+    if (/whitelist|IP|ENOTFOUND|querySrv|authentication/i.test(err.message)) {
+      console.error(
+        '[db] Tip: In Atlas → Network Access, allow 0.0.0.0/0. Also check user/password in MONGODB_URI.'
+      );
+    }
+    throw err;
+  }
 }
 
 module.exports = { connectDb };
