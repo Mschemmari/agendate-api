@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useNewAppointment } from '../hooks';
+import { useBookingLink, useNewAppointment } from '../hooks';
 import { colors, spacing, typography } from '../theme';
 import { formatDateLabel, formatTime } from '../utils/date';
 import { whatsappUrl } from '../utils/phone';
@@ -21,6 +21,7 @@ export default function NewAppointmentScreen({ navigation }) {
   const form = useNewAppointment({
     onCreated: () => navigation.navigate('Agenda'),
   });
+  const link = useBookingLink();
 
   return (
     <ScrollView
@@ -32,6 +33,21 @@ export default function NewAppointmentScreen({ navigation }) {
       <Text style={styles.hint}>
         Completá los datos del paciente y el horario.
       </Text>
+
+      <Pressable
+        style={styles.linkBtn}
+        onPress={link.share}
+        disabled={link.loading || !link.url}
+      >
+        <Ionicons name="link-outline" size={20} color={colors.accent} />
+        <View style={styles.linkBtnText}>
+          <Text style={styles.linkBtnTitle}>Mandar mi link</Text>
+          <Text style={styles.linkBtnHint}>Que reserve el cliente</Text>
+        </View>
+        <Ionicons name="share-outline" size={18} color={colors.muted} />
+      </Pressable>
+      {!!link.message && <Text style={styles.ok}>{link.message}</Text>}
+      {!!link.error && <Text style={styles.error}>{link.error}</Text>}
 
       <Text style={styles.label}>Paciente</Text>
       <TextInput
@@ -85,6 +101,14 @@ export default function NewAppointmentScreen({ navigation }) {
         ) : (
           <Text style={styles.btnText}>Guardar turno</Text>
         )}
+      </Pressable>
+
+      <Pressable
+        style={styles.copyLink}
+        onPress={link.copy}
+        disabled={link.loading || !link.url}
+      >
+        <Text style={styles.copyLinkText}>Copiar link</Text>
       </Pressable>
 
       <View style={styles.clientsSection}>
@@ -171,7 +195,22 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   container: { padding: spacing.screen, paddingTop: spacing.top, paddingBottom: 40 },
   title: { ...typography.title, marginBottom: 6 },
-  hint: { ...typography.muted, marginBottom: 20 },
+  hint: { ...typography.muted, marginBottom: 16 },
+  linkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 18,
+  },
+  linkBtnText: { flex: 1 },
+  linkBtnTitle: { fontSize: 16, fontWeight: '700', color: colors.ink },
+  linkBtnHint: { fontSize: 13, color: colors.muted, marginTop: 2 },
   label: { ...typography.label, marginBottom: 8, marginTop: 4 },
   row: { flexDirection: 'row', gap: 10, marginBottom: 10 },
   half: { flex: 1 },
@@ -206,7 +245,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   btnText: typography.button,
+  copyLink: {
+    marginTop: 10,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  copyLinkText: { color: colors.accent, fontWeight: '700', fontSize: 14 },
   error: { color: colors.danger, marginBottom: 8 },
+  ok: { color: colors.accent, marginBottom: 8, fontWeight: '600' },
   clientsSection: {
     marginTop: 32,
     paddingTop: 24,

@@ -41,3 +41,5 @@ apps/mobile/*.orig.*
 .idea/
 .vscode/
 apps/mobile/.claude/
+mockups/
+nuevo-*.png

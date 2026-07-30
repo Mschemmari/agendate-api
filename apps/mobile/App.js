@@ -9,7 +9,6 @@ import LoginScreen from './src/screens/LoginScreen';
 import AgendaScreen from './src/screens/AgendaScreen';
 import NewAppointmentScreen from './src/screens/NewAppointmentScreen';
 import AvailabilityScreen from './src/screens/AvailabilityScreen';
-import ShareLinkScreen from './src/screens/ShareLinkScreen';
 import { colors } from './src/theme';
 
 const Stack = createNativeStackNavigator();
@@ -19,7 +18,6 @@ const TAB_ICONS = {
   Agenda: { focused: 'calendar', idle: 'calendar-outline' },
   NewAppointment: { focused: 'add-circle', idle: 'add-circle-outline' },
   Availability: { focused: 'time', idle: 'time-outline' },
-  ShareLink: { focused: 'link', idle: 'link-outline' },
 };
 
 function MainTabs() {
@@ -69,11 +67,6 @@ function MainTabs() {
         name="Availability"
         component={AvailabilityScreen}
         options={{ tabBarLabel: 'Horarios' }}
-      />
-      <Tab.Screen
-        name="ShareLink"
-        component={ShareLinkScreen}
-        options={{ tabBarLabel: 'Link' }}
       />
     </Tab.Navigator>
   );
