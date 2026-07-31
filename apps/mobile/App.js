@@ -56,12 +56,12 @@ function MainTabs() {
       <Tab.Screen
         name="Agenda"
         component={AgendaScreen}
-        options={{ tabBarLabel: 'Agenda' }}
+        options={{ tabBarLabel: 'Reservas' }}
       />
       <Tab.Screen
         name="NewAppointment"
         component={NewAppointmentScreen}
-        options={{ tabBarLabel: 'Nuevo' }}
+        options={{ tabBarLabel: 'Nuevo turno' }}
       />
       <Tab.Screen
         name="Availability"

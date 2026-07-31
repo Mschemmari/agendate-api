@@ -160,11 +160,19 @@ export function useAgenda() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api(`/me/appointments/${item.id}/cancel`, {
+              const result = await api(`/me/appointments/${item.id}/cancel`, {
                 method: 'PATCH',
               });
               await cancelAppointmentReminder(item.id);
               await load();
+              const offer = result.waitlistOffer;
+              if (offer?.name) {
+                Alert.alert(
+                  'Lista de espera',
+                  `Se liberó un lugar. Avisamos automáticamente a ${offer.name} (1º en la lista).`,
+                  [{ text: 'OK' }]
+                );
+              }
             } catch (err) {
               setError(err.message);
             }

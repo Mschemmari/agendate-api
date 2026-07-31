@@ -66,8 +66,33 @@ async function notifyNewAppointment({ professional, patient, appointment }) {
   }
 }
 
+async function notifyWaitlistOffer({ professional, entry, freedStartsAt }) {
+  const tokens = (professional.expoPushTokens || []).filter(isExpoPushToken);
+  if (tokens.length === 0) return;
+
+  const when = freedStartsAt ? formatWhen(freedStartsAt) : 'un horario liberado';
+  try {
+    await sendExpoPush(
+      tokens.map((to) => ({
+        to,
+        sound: 'default',
+        title: 'Lista de espera',
+        body: `Se liberó ${when}. Contactá a ${entry.name} (1º en la lista).`,
+        data: {
+          type: 'waitlist-offer',
+          entryId: String(entry._id),
+        },
+        channelId: 'new-appointments',
+      }))
+    );
+  } catch (err) {
+    console.error('[push] notifyWaitlistOffer error', err.message);
+  }
+}
+
 module.exports = {
   sendExpoPush,
   notifyNewAppointment,
+  notifyWaitlistOffer,
   isExpoPushToken,
 };

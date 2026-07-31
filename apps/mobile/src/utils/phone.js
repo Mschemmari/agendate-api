@@ -3,8 +3,9 @@ export function digitsOnly(phone) {
   return String(phone || '').replace(/\D/g, '');
 }
 
-export function whatsappUrl(phone) {
-  const digits = digitsOnly(phone);
-  if (!digits) return null;
-  return `https://wa.me/${digits}`;
+export function whatsappUrl(phone, text) {
+  const digits = phone ? digitsOnly(phone) : '';
+  const base = digits ? `https://wa.me/${digits}` : 'https://wa.me/';
+  if (!text) return digits ? base : null;
+  return `${base}?text=${encodeURIComponent(text)}`;
 }

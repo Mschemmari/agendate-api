@@ -3,3 +3,4 @@ export { useAgenda } from './useAgenda';
 export { useNewAppointment } from './useNewAppointment';
 export { useAvailability } from './useAvailability';
 export { useBookingLink } from './useBookingLink';
+export { useWaitlist } from './useWaitlist';

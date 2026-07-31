@@ -12,16 +12,27 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useBookingLink, useNewAppointment } from '../hooks';
+import { useAuth, useBookingLink, useNewAppointment, useWaitlist } from '../hooks';
 import { colors, spacing, typography } from '../theme';
 import { formatDateLabel, formatTime } from '../utils/date';
 import { whatsappUrl } from '../utils/phone';
+
+function formatPreferred(date) {
+  if (!date) return 'Cualquier día';
+  return new Date(date).toLocaleDateString('es-AR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+}
 
 export default function NewAppointmentScreen({ navigation }) {
   const form = useNewAppointment({
     onCreated: () => navigation.navigate('Agenda'),
   });
   const link = useBookingLink();
+  const waitlist = useWaitlist();
+  const { professional } = useAuth();
 
   return (
     <ScrollView
@@ -36,17 +47,20 @@ export default function NewAppointmentScreen({ navigation }) {
 
       <Pressable
         style={styles.linkBtn}
-        onPress={link.share}
+        onPress={link.shareWhatsApp}
         disabled={link.loading || !link.url}
       >
-        <Ionicons name="link-outline" size={20} color={colors.accent} />
+        <Ionicons name="logo-whatsapp" size={22} color={colors.accent} />
         <View style={styles.linkBtnText}>
-          <Text style={styles.linkBtnTitle}>Mandar mi link</Text>
-          <Text style={styles.linkBtnHint}>Que reserve el cliente</Text>
+          <Text style={styles.linkBtnTitle}>Enviar por WhatsApp</Text>
+          <Text style={styles.linkBtnHint}>
+            {professional?.slug
+              ? `Código bot: ${professional.slug}`
+              : 'Link de reservas al cliente'}
+          </Text>
         </View>
         <Ionicons name="share-outline" size={18} color={colors.muted} />
       </Pressable>
-      {!!link.message && <Text style={styles.ok}>{link.message}</Text>}
       {!!link.error && <Text style={styles.error}>{link.error}</Text>}
 
       <Text style={styles.label}>Paciente</Text>
@@ -103,13 +117,59 @@ export default function NewAppointmentScreen({ navigation }) {
         )}
       </Pressable>
 
-      <Pressable
-        style={styles.copyLink}
-        onPress={link.copy}
-        disabled={link.loading || !link.url}
-      >
-        <Text style={styles.copyLinkText}>Copiar link</Text>
-      </Pressable>
+      <View style={styles.copyBlock}>
+        {!!link.url && <Text style={styles.linkUrl} selectable>{link.url}</Text>}
+        <Pressable
+          style={styles.copyLink}
+          onPress={link.copy}
+          disabled={link.loading || !link.url}
+        >
+          <Text style={styles.copyLinkText}>Copiar link</Text>
+        </Pressable>
+        {!!link.message && <Text style={styles.ok}>{link.message}</Text>}
+      </View>
+
+      <View style={styles.clientsSection}>
+        <Text style={styles.sectionTitleQuiet}>Lista de espera</Text>
+        <Text style={styles.sectionHint}>
+          Si alguien cancela, avisamos automáticamente al primero.
+        </Text>
+        {waitlist.loading ? (
+          <ActivityIndicator color={colors.accent} />
+        ) : waitlist.entries.length === 0 ? (
+          <Text style={styles.empty}>Nadie en espera por ahora.</Text>
+        ) : (
+          waitlist.entries.map((entry) => (
+            <View key={entry.id} style={styles.clientCard}>
+              <View style={styles.waitHead}>
+                <Text style={styles.clientName}>
+                  #{entry.position} {entry.name}
+                </Text>
+                {entry.status === 'offered' && (
+                  <Text style={styles.offeredBadge}>Avisar</Text>
+                )}
+              </View>
+              <Text style={styles.clientMeta}>{entry.email}</Text>
+              <Text style={styles.clientMeta}>
+                {formatPreferred(entry.preferredDate)}
+              </Text>
+              <View style={styles.waitActions}>
+                <Pressable
+                  style={styles.phoneRow}
+                  onPress={() => waitlist.contactWhatsApp(entry)}
+                >
+                  <Ionicons name="logo-whatsapp" size={16} color={colors.accent} />
+                  <Text style={styles.phone}>{entry.phone || 'WhatsApp'}</Text>
+                </Pressable>
+                <Pressable onPress={() => waitlist.remove(entry)}>
+                  <Text style={styles.removeText}>Quitar</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
+        )}
+        {!!waitlist.error && <Text style={styles.error}>{waitlist.error}</Text>}
+      </View>
 
       <View style={styles.clientsSection}>
         <Text style={styles.sectionTitle}>Tus clientes</Text>
@@ -245,14 +305,24 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   btnText: typography.button,
-  copyLink: {
+  copyBlock: {
     marginTop: 10,
+    alignItems: 'center',
+    gap: 6,
+  },
+  linkUrl: {
+    color: colors.ink,
+    fontSize: 13,
+    textAlign: 'center',
+    paddingHorizontal: 8,
+  },
+  copyLink: {
     alignItems: 'center',
     paddingVertical: 10,
   },
   copyLinkText: { color: colors.accent, fontWeight: '700', fontSize: 14 },
   error: { color: colors.danger, marginBottom: 8 },
-  ok: { color: colors.accent, marginBottom: 8, fontWeight: '600' },
+  ok: { color: colors.accent, fontWeight: '600', fontSize: 13 },
   clientsSection: {
     marginTop: 32,
     paddingTop: 24,
@@ -260,6 +330,14 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
   },
   sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.ink, marginBottom: 4 },
+  sectionTitleQuiet: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.muted,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
   sectionHint: { color: colors.muted, marginBottom: 14, fontSize: 13 },
   empty: { color: colors.muted, fontStyle: 'italic' },
   clientCard: {
@@ -272,6 +350,29 @@ const styles = StyleSheet.create({
   },
   clientName: { fontSize: 16, fontWeight: '700', color: colors.ink },
   clientMeta: { color: colors.muted, marginTop: 2, fontSize: 13 },
+  waitHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  offeredBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.accent,
+    backgroundColor: colors.accentSoft || '#e2e6ec',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  waitActions: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  removeText: { color: colors.danger, fontWeight: '600', fontSize: 13 },
   phoneRow: {
     flexDirection: 'row',
     alignItems: 'center',

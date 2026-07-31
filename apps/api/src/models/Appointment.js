@@ -22,7 +22,7 @@ const appointmentSchema = new mongoose.Schema(
     },
     source: {
       type: String,
-      enum: ['pro', 'link'],
+      enum: ['pro', 'link', 'whatsapp'],
       required: true,
     },
   },

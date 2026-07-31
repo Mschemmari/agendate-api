@@ -1,6 +1,6 @@
 # Agendate — MVP de turnos
 
-App tipo Calendly: el profesional gestiona la agenda en **Expo** y el paciente reserva por **link web**. Al confirmar, se envía email + link “Agregar a Google Calendar” (y `.ics`).
+App tipo Calendly: el profesional gestiona la agenda en **Expo** y el paciente reserva por **link web** o por **WhatsApp (bot)**. Al confirmar, se envía email + link “Agregar a Google Calendar” (y `.ics`).
 
 ## Estructura
 
@@ -13,9 +13,10 @@ packages/shared
 
 ## Requisitos
 
-- Node 18+
+- Node 20+
 - MongoDB local **o** dejá `MONGODB_URI` vacío para usar Mongo in-memory (demo)
 - (Opcional) `RESEND_API_KEY` para emails reales
+- (Opcional) WhatsApp Cloud API para el bot de turnos
 
 ## Setup
 
@@ -43,19 +44,29 @@ npm run web
 
 ```bash
 cd apps/mobile
-# En dispositivo físico, seteá la IP de tu Mac:
-# EXPO_PUBLIC_API_URL=http://192.168.x.x:4000
 npm start
 ```
 
-Escaneá el QR con Expo Go.
+## WhatsApp bot (reserva sin link)
 
-## Flujo de prueba
+El cliente escribe al número de WhatsApp Business de Agendate:
 
-1. En la app: registrate (se crean horarios lun–vie 9–18 y servicio “Consulta” 45 min).
-2. Abrí **Link** y copiá la URL.
-3. Abrila en el browser, elegí un slot y reservá.
-4. El turno aparece en la agenda; en la consola de la API verás el email (si no hay Resend) y el link de Google Calendar.
+1. Manda el **código/slug** del profesional (ej. `maria-lopez`)
+2. Elige un horario por número
+3. Confirma nombre y email → el bot agenda solo
+4. Si no hay lugar: escribe `lista` y queda en lista de espera FIFO
+
+Webhook Meta: `GET/POST https://<tu-api>/webhooks/whatsapp`
+
+Variables: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`.
+
+Sin token, la API hace dry-run (log en consola).
+
+## Lista de espera
+
+- Web: si un día no tiene turnos, formulario de lista de espera
+- Mobile (Nuevo): lista ordenada + WhatsApp al contacto
+- Al cancelar un turno: se ofrece el lugar al primero (push + WhatsApp si hay API)
 
 ## Variables (`.env`)
 
@@ -64,10 +75,9 @@ Escaneá el QR con Expo Go.
 | `PORT` | Puerto API (4000) |
 | `MONGODB_URI` | Vacío = memoria; o Atlas/local |
 | `JWT_SECRET` | Secreto JWT |
-| `WEB_URL` | Base del link público |
+| `WEB_URL` | Base del link público (Vercel) |
 | `RESEND_API_KEY` | Opcional |
 | `EMAIL_FROM` | Remitente Resend |
+| `WHATSAPP_*` | Cloud API del bot |
 
-Web: `VITE_API_URL` (default `http://localhost:4000`).
-
-Mobile: `EXPO_PUBLIC_API_URL` (default `http://localhost:4000`).
+Web: `VITE_API_URL`. Mobile: `apps/mobile/src/api/config.js`.

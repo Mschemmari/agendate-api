@@ -13,6 +13,8 @@ import { colors, spacing, typography } from '../theme';
 export default function AvailabilityScreen({ navigation }) {
   const {
     DAYS,
+    sessionMode,
+    setMode,
     rules,
     loading,
     saving,
@@ -32,10 +34,35 @@ export default function AvailabilityScreen({ navigation }) {
     );
   }
 
+  const isGroup = sessionMode === 'group';
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Disponibilidad</Text>
-      <Text style={styles.hint}>Activá los días y definí franja horaria.</Text>
+      <Text style={styles.hint}>
+        {isGroup
+          ? 'Clase semanal con cupo: definí franja y lugares.'
+          : 'Franja para turnos 1:1: activá los días y el horario.'}
+      </Text>
+
+      <View style={styles.modeRow}>
+        <Pressable
+          style={[styles.modeBtn, !isGroup && styles.modeBtnOn]}
+          onPress={() => setMode('individual')}
+        >
+          <Text style={[styles.modeText, !isGroup && styles.modeTextOn]}>
+            Individual
+          </Text>
+        </Pressable>
+        <Pressable
+          style={[styles.modeBtn, isGroup && styles.modeBtnOn]}
+          onPress={() => setMode('group')}
+        >
+          <Text style={[styles.modeText, isGroup && styles.modeTextOn]}>
+            Grupal
+          </Text>
+        </Pressable>
+      </View>
 
       {rules.map((rule) => (
         <View key={rule.dayOfWeek} style={styles.row}>
@@ -64,6 +91,19 @@ export default function AvailabilityScreen({ navigation }) {
             editable={rule.enabled}
             onChangeText={(endTime) => updateRule(rule.dayOfWeek, { endTime })}
           />
+          {isGroup && (
+            <TextInput
+              style={styles.capacity}
+              value={rule.capacity}
+              editable={rule.enabled}
+              keyboardType="number-pad"
+              placeholder="Cupo"
+              placeholderTextColor={colors.muted}
+              onChangeText={(capacity) =>
+                updateRule(rule.dayOfWeek, { capacity })
+              }
+            />
+          )}
         </View>
       ))}
 
@@ -91,6 +131,26 @@ const styles = StyleSheet.create({
   },
   title: typography.title,
   hint: { ...typography.muted, marginBottom: 16, marginTop: 6 },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+  },
+  modeBtnOn: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  modeText: { fontWeight: '700', color: colors.ink },
+  modeTextOn: { color: colors.white },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -116,6 +176,17 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: 10,
     paddingHorizontal: 10,
+    paddingVertical: 10,
+    color: colors.ink,
+    textAlign: 'center',
+  },
+  capacity: {
+    width: 56,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 8,
     paddingVertical: 10,
     color: colors.ink,
     textAlign: 'center',

@@ -19,11 +19,14 @@ router.get('/', (req, res) => {
     email: p.email,
     name: p.name,
     slug: p.slug,
+    sessionMode: p.sessionMode || 'individual',
   });
 });
 
 router.get('/booking-link', (req, res) => {
-  const webUrl = (process.env.WEB_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const webUrl = (
+    process.env.WEB_URL || 'https://agendate-api-web.vercel.app'
+  ).replace(/\/$/, '');
   res.json({
     slug: req.professional.slug,
     url: `${webUrl}/u/${req.professional.slug}`,
@@ -66,7 +69,10 @@ router.get('/availability', async (req, res, next) => {
     const rules = await AvailabilityRule.find({
       professionalId: req.professional._id,
     }).sort({ dayOfWeek: 1, startTime: 1 });
-    res.json(rules);
+    res.json({
+      sessionMode: req.professional.sessionMode || 'individual',
+      rules,
+    });
   } catch (err) {
     next(err);
   }
@@ -74,21 +80,43 @@ router.get('/availability', async (req, res, next) => {
 
 router.put('/availability', async (req, res, next) => {
   try {
-    const { rules } = req.body;
+    const { rules, sessionMode } = req.body;
     if (!Array.isArray(rules)) {
       return res.status(400).json({ error: 'rules debe ser un array' });
     }
 
+    const mode = sessionMode === 'group' ? 'group' : 'individual';
+    if (req.professional.sessionMode !== mode) {
+      req.professional.sessionMode = mode;
+      await req.professional.save();
+    }
+
     await AvailabilityRule.deleteMany({ professionalId: req.professional._id });
-    const created = await AvailabilityRule.insertMany(
-      rules.map((r) => ({
-        professionalId: req.professional._id,
-        dayOfWeek: r.dayOfWeek,
-        startTime: r.startTime,
-        endTime: r.endTime,
-      }))
-    );
-    res.json(created);
+    const created =
+      rules.length === 0
+        ? []
+        : await AvailabilityRule.insertMany(
+            rules.map((r) => {
+              const capacity = Number(r.capacity);
+              return {
+                professionalId: req.professional._id,
+                dayOfWeek: r.dayOfWeek,
+                startTime: r.startTime,
+                endTime: r.endTime,
+                capacity:
+                  mode === 'group'
+                    ? Number.isFinite(capacity) && capacity >= 1
+                      ? capacity
+                      : 20
+                    : 1,
+              };
+            })
+          );
+
+    res.json({
+      sessionMode: mode,
+      rules: created,
+    });
   } catch (err) {
     next(err);
   }
@@ -105,12 +133,13 @@ router.get('/services', async (req, res, next) => {
 
 router.post('/services', async (req, res, next) => {
   try {
-    const { name, durationMinutes } = req.body;
+    const { name, durationMinutes, price } = req.body;
     if (!name) return res.status(400).json({ error: 'name es requerido' });
     const service = await Service.create({
       professionalId: req.professional._id,
       name,
       durationMinutes: durationMinutes || 45,
+      price: price != null ? Number(price) : 0,
     });
     res.status(201).json(service);
   } catch (err) {
@@ -225,16 +254,48 @@ router.post('/appointments', async (req, res, next) => {
 
 router.patch('/appointments/:id/cancel', async (req, res, next) => {
   try {
-    const appointment = await cancelAppointment({
+    const result = await cancelAppointment({
       professional: req.professional,
       appointmentId: req.params.id,
     });
+    const appointment = result.appointment || result;
     res.json({
       id: appointment._id,
       status: appointment.status,
       startsAt: appointment.startsAt,
       endsAt: appointment.endsAt,
+      waitlistOffer: result.waitlistOffer
+        ? {
+            id: result.waitlistOffer._id,
+            name: result.waitlistOffer.name,
+            phone: result.waitlistOffer.phone,
+            email: result.waitlistOffer.email,
+          }
+        : null,
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/waitlist', async (req, res, next) => {
+  try {
+    const { listWaitlist } = require('../services/waitlist');
+    const entries = await listWaitlist(req.professional._id);
+    res.json(entries);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/waitlist/:id/cancel', async (req, res, next) => {
+  try {
+    const { cancelWaitlistEntry } = require('../services/waitlist');
+    const entry = await cancelWaitlistEntry({
+      professionalId: req.professional._id,
+      entryId: req.params.id,
+    });
+    res.json({ id: entry._id, status: entry.status });
   } catch (err) {
     next(err);
   }

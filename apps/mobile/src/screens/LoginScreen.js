@@ -18,6 +18,8 @@ export default function LoginScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [price, setPrice] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('45');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +30,18 @@ export default function LoginScreen() {
       if (mode === 'login') {
         await login(email.trim(), password);
       } else {
-        await register(name.trim(), email.trim(), password);
+        const duration = Number(durationMinutes);
+        const hourlyPrice = Number(String(price).replace(',', '.'));
+        if (!Number.isFinite(duration) || duration < 5) {
+          throw new Error('La duración debe ser al menos 5 minutos');
+        }
+        if (!Number.isFinite(hourlyPrice) || hourlyPrice < 0 || price === '') {
+          throw new Error('Ingresá el valor de la hora');
+        }
+        await register(name.trim(), email.trim(), password, {
+          durationMinutes: duration,
+          price: hourlyPrice,
+        });
       }
     } catch (err) {
       setError(err.message);
@@ -53,7 +66,7 @@ export default function LoginScreen() {
       {mode === 'register' && (
         <TextInput
           style={styles.input}
-          placeholder="Nombre profesional"
+          placeholder="Nombre de profesional o empresa"
           placeholderTextColor={colors.muted}
           value={name}
           onChangeText={setName}
@@ -76,6 +89,33 @@ export default function LoginScreen() {
         value={password}
         onChangeText={setPassword}
       />
+
+      {mode === 'register' && (
+        <View style={styles.row}>
+          <View style={styles.field}>
+            <Text style={styles.label}>Valor de la hora</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. 15000"
+              placeholderTextColor={colors.muted}
+              keyboardType="decimal-pad"
+              value={price}
+              onChangeText={setPrice}
+            />
+          </View>
+          <View style={styles.field}>
+            <Text style={styles.label}>Duración (minutos)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. 45"
+              placeholderTextColor={colors.muted}
+              keyboardType="number-pad"
+              value={durationMinutes}
+              onChangeText={setDurationMinutes}
+            />
+          </View>
+        </View>
+      )}
 
       {!!error && <Text style={styles.error}>{error}</Text>}
 
@@ -110,6 +150,19 @@ const styles = StyleSheet.create({
   brand: { ...typography.brand, fontSize: 22, marginBottom: 8 },
   title: { ...typography.title, fontSize: 28, marginBottom: 8 },
   subtitle: { ...typography.muted, marginBottom: 24 },
+  row: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  field: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.muted,
+    marginBottom: 6,
+  },
   input: {
     backgroundColor: colors.white,
     borderWidth: 1,

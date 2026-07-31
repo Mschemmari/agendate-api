@@ -17,11 +17,37 @@ async function uniqueSlug(base) {
   return n ? `${slug}-${n}` : slug;
 }
 
+function normalizeSessionMode(value) {
+  return value === 'group' ? 'group' : 'individual';
+}
+
+function professionalPayload(professional) {
+  return {
+    id: professional._id,
+    email: professional.email,
+    name: professional.name,
+    slug: professional.slug,
+    sessionMode: professional.sessionMode || 'individual',
+  };
+}
+
 router.post('/register', async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, durationMinutes, price, sessionMode } = req.body;
     if (!email || !password || !name) {
       return res.status(400).json({ error: 'email, password y name son requeridos' });
+    }
+
+    const mode = normalizeSessionMode(sessionMode);
+    const duration = Number(durationMinutes);
+    const hourlyPrice = Number(price);
+    if (!Number.isFinite(duration) || duration < 5) {
+      return res
+        .status(400)
+        .json({ error: 'duración de la consulta inválida (mínimo 5 min)' });
+    }
+    if (!Number.isFinite(hourlyPrice) || hourlyPrice < 0) {
+      return res.status(400).json({ error: 'valor de la hora inválido' });
     }
 
     const exists = await Professional.findOne({ email: email.toLowerCase().trim() });
@@ -36,14 +62,17 @@ router.post('/register', async (req, res, next) => {
       passwordHash,
       name,
       slug,
+      sessionMode: mode,
     });
 
     await Service.create({
       professionalId: professional._id,
-      name: 'Consulta',
-      durationMinutes: 45,
+      name: mode === 'group' ? 'Clase' : 'Consulta',
+      durationMinutes: duration,
+      price: hourlyPrice,
     });
 
+    const defaultCapacity = mode === 'group' ? 20 : 1;
     const defaultHours = [
       { dayOfWeek: 1, startTime: '09:00', endTime: '18:00' },
       { dayOfWeek: 2, startTime: '09:00', endTime: '18:00' },
@@ -52,18 +81,17 @@ router.post('/register', async (req, res, next) => {
       { dayOfWeek: 5, startTime: '09:00', endTime: '18:00' },
     ];
     await AvailabilityRule.insertMany(
-      defaultHours.map((r) => ({ ...r, professionalId: professional._id }))
+      defaultHours.map((r) => ({
+        ...r,
+        professionalId: professional._id,
+        capacity: defaultCapacity,
+      }))
     );
 
     const token = signToken(professional);
     res.status(201).json({
       token,
-      professional: {
-        id: professional._id,
-        email: professional.email,
-        name: professional.name,
-        slug: professional.slug,
-      },
+      professional: professionalPayload(professional),
     });
   } catch (err) {
     next(err);
@@ -92,12 +120,7 @@ router.post('/login', async (req, res, next) => {
     const token = signToken(professional);
     res.json({
       token,
-      professional: {
-        id: professional._id,
-        email: professional.email,
-        name: professional.name,
-        slug: professional.slug,
-      },
+      professional: professionalPayload(professional),
     });
   } catch (err) {
     next(err);

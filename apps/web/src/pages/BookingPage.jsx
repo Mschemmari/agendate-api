@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { bookSlot, getPublicProfile, getSlots } from '../api';
+import { bookSlot, getPublicProfile, getSlots, joinWaitlist } from '../api';
 
 const WEEKDAYS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
 
@@ -65,6 +65,19 @@ function formatTime(iso) {
   });
 }
 
+function formatSlotLabel(slot, isGroup) {
+  if (!isGroup) return formatTime(slot.startsAt);
+  return `${formatTime(slot.startsAt)}–${formatTime(slot.endsAt)}`;
+}
+
+function formatSpots(slot) {
+  const left = slot.spotsLeft;
+  if (left == null) return '';
+  if (left <= 0) return 'Agotado';
+  if (left === 1) return '1 lugar';
+  return `${left} lugares`;
+}
+
 function dayKey(date) {
   return startOfDay(date).toDateString();
 }
@@ -85,6 +98,13 @@ export default function BookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(null);
+  const [waitlistDone, setWaitlistDone] = useState(null);
+  const [waitlistForm, setWaitlistForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+  });
+  const [waitlistSubmitting, setWaitlistSubmitting] = useState(false);
 
   const monthCells = useMemo(() => buildMonthCells(monthAnchor), [monthAnchor]);
 
@@ -210,10 +230,49 @@ export default function BookingPage() {
     }
   }
 
+  async function onWaitlistSubmit(e) {
+    e.preventDefault();
+    setWaitlistSubmitting(true);
+    setError('');
+    try {
+      const result = await joinWaitlist(slug, {
+        name: waitlistForm.name,
+        email: waitlistForm.email,
+        phone: waitlistForm.phone,
+        preferredDate: selectedDay.toISOString(),
+      });
+      setWaitlistDone(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWaitlistSubmitting(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="shell">
         <p className="muted">Cargando agenda…</p>
+      </main>
+    );
+  }
+
+  if (waitlistDone) {
+    return (
+      <main className="shell">
+        <div className="card success">
+          <p className="brand">Agendate</p>
+          <h1>Ya estás en la lista</h1>
+          <p>
+            Quedaste en el lugar <strong>#{waitlistDone.position}</strong> con{' '}
+            <strong>{waitlistDone.professionalName}</strong>.
+          </p>
+          <p className="muted">
+            La lista es por si alguien cancela. Te avisamos automáticamente en
+            orden de llegada cuando se libere un lugar; no garantiza un día
+            exacto.
+          </p>
+        </div>
       </main>
     );
   }
@@ -229,7 +288,9 @@ export default function BookingPage() {
           </p>
           <p className="when">
             {formatSelectedDay(new Date(success.startsAt))} ·{' '}
-            {formatTime(success.startsAt)}
+            {success.endsAt
+              ? `${formatTime(success.startsAt)}–${formatTime(success.endsAt)}`
+              : formatTime(success.startsAt)}
           </p>
           <p className="muted">
             Te enviamos un email con los detalles (o lo verás en la consola del
@@ -251,6 +312,7 @@ export default function BookingPage() {
   const canGoPrev =
     addMonths(monthAnchor, -1) >=
     new Date(today.getFullYear(), today.getMonth(), 1);
+  const isGroup = profile?.sessionMode === 'group';
 
   return (
     <main className="shell">
@@ -258,8 +320,12 @@ export default function BookingPage() {
         <p className="brand">Agendate</p>
         <h1>{profile?.name || 'Profesional'}</h1>
         <p className="muted">
-          {profile?.service?.name || 'Consulta'} ·{' '}
-          {profile?.service?.durationMinutes || 45} min
+          {profile?.service?.name || (isGroup ? 'Clase' : 'Consulta')}
+          {!isGroup && ` · ${profile?.service?.durationMinutes || 45} min`}
+          {isGroup && ' · Sesión grupal'}
+          {profile?.service?.price > 0
+            ? ` · $${Number(profile.service.price).toLocaleString('es-AR')}`
+            : ''}
         </p>
 
         {error && <p className="error">{error}</p>}
@@ -329,12 +395,61 @@ export default function BookingPage() {
           </section>
 
           <section className="picker-slots">
-            <h2>Horarios</h2>
+            <h2>{isGroup ? 'Clases' : 'Horarios'}</h2>
             <p className="day-label">{formatSelectedDay(selectedDay)}</p>
             {slotsLoading ? (
               <p className="muted">Cargando…</p>
             ) : daySlots.length === 0 ? (
-              <p className="muted">Sin turnos este día.</p>
+              <div className="waitlist-box">
+                <p className="muted">
+                  Sin horarios este día. Si querés, anotate en la lista: si
+                  alguien cancela, te avisamos automáticamente en orden de
+                  llegada.
+                </p>
+                {profile?.waitingCount > 0 && (
+                  <p className="muted waitlist-soft">
+                    Ya hay personas en la fila; te avisamos cuando te toque.
+                  </p>
+                )}
+                <form className="form waitlist-form" onSubmit={onWaitlistSubmit}>
+                  <label>
+                    Nombre
+                    <input
+                      required
+                      value={waitlistForm.name}
+                      onChange={(e) =>
+                        setWaitlistForm({ ...waitlistForm, name: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Email
+                    <input
+                      required
+                      type="email"
+                      value={waitlistForm.email}
+                      onChange={(e) =>
+                        setWaitlistForm({ ...waitlistForm, email: e.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Teléfono (WhatsApp)
+                    <input
+                      required
+                      type="tel"
+                      placeholder="Con código de país, ej. 54911…"
+                      value={waitlistForm.phone}
+                      onChange={(e) =>
+                        setWaitlistForm({ ...waitlistForm, phone: e.target.value })
+                      }
+                    />
+                  </label>
+                  <button className="btn secondary" type="submit" disabled={waitlistSubmitting}>
+                    {waitlistSubmitting ? 'Anotando…' : 'Anotarme en la lista'}
+                  </button>
+                </form>
+              </div>
             ) : (
               <div className="slots">
                 {daySlots.map((slot) => (
@@ -348,7 +463,10 @@ export default function BookingPage() {
                     }
                     onClick={() => setSelected(slot)}
                   >
-                    {formatTime(slot.startsAt)}
+                    {formatSlotLabel(slot, isGroup)}
+                    {isGroup && (
+                      <span className="slot-meta">{formatSpots(slot)}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -388,7 +506,7 @@ export default function BookingPage() {
             <button className="btn" type="submit" disabled={submitting}>
               {submitting
                 ? 'Reservando…'
-                : `Confirmar ${formatTime(selected.startsAt)}`}
+                : `Confirmar ${formatSlotLabel(selected, isGroup)}`}
             </button>
           </form>
         )}

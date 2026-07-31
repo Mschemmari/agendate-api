@@ -16,9 +16,10 @@ function overlaps(aStart, aEnd, bStart, bEnd) {
 
 /**
  * Generate available slots between from/to dates.
- * availabilityRules: [{ dayOfWeek, startTime, endTime }]
+ * availabilityRules: [{ dayOfWeek, startTime, endTime, capacity? }]
  * appointments: [{ startsAt, endsAt }] (confirmed only)
- * durationMinutes: number
+ * durationMinutes: number (individual mode)
+ * sessionMode: 'individual' | 'group'
  */
 function generateSlots({
   from,
@@ -26,6 +27,7 @@ function generateSlots({
   availabilityRules,
   appointments,
   durationMinutes,
+  sessionMode = 'individual',
   now = new Date(),
 }) {
   const slots = [];
@@ -33,6 +35,7 @@ function generateSlots({
   startDay.setHours(0, 0, 0, 0);
   const endDay = new Date(to);
   endDay.setHours(23, 59, 59, 999);
+  const isGroup = sessionMode === 'group';
 
   for (
     let day = new Date(startDay);
@@ -45,6 +48,31 @@ function generateSlots({
     for (const rule of rules) {
       const startMin = parseTimeToMinutes(rule.startTime);
       const endMin = parseTimeToMinutes(rule.endTime);
+
+      if (isGroup) {
+        if (endMin <= startMin) continue;
+        const slotStart = minutesToDate(day, startMin);
+        const slotEnd = minutesToDate(day, endMin);
+        if (slotStart <= now) continue;
+
+        const capacity = Math.max(1, Number(rule.capacity) || 1);
+        const booked = appointments.filter((a) => {
+          const aStart = new Date(a.startsAt).getTime();
+          const aEnd = new Date(a.endsAt).getTime();
+          return aStart === slotStart.getTime() && aEnd === slotEnd.getTime();
+        }).length;
+        const spotsLeft = capacity - booked;
+        if (spotsLeft <= 0) continue;
+
+        slots.push({
+          startsAt: slotStart.toISOString(),
+          endsAt: slotEnd.toISOString(),
+          capacity,
+          booked,
+          spotsLeft,
+        });
+        continue;
+      }
 
       for (let m = startMin; m + durationMinutes <= endMin; m += durationMinutes) {
         const slotStart = minutesToDate(day, m);

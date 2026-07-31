@@ -52,10 +52,17 @@ export function AuthProvider({ children }) {
         setProfessional(data.professional);
         return data;
       },
-      async register(name, email, password) {
+      async register(name, email, password, { durationMinutes, price } = {}) {
         const data = await api('/auth/register', {
           method: 'POST',
-          body: { name, email, password },
+          body: {
+            name,
+            email,
+            password,
+            durationMinutes,
+            price,
+            sessionMode: 'individual',
+          },
           token: null,
         });
         await setToken(data.token);

@@ -8,20 +8,33 @@ const { connectDb } = require('./db');
 const authRoutes = require('./routes/auth');
 const meRoutes = require('./routes/me');
 const publicRoutes = require('./routes/public');
+const whatsappRoutes = require('./routes/whatsapp');
+const { isConfigured } = require('./services/whatsappClient');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, service: 'agendate-api' });
+  res.json({
+    ok: true,
+    service: 'agendate-api',
+    whatsapp: isConfigured(),
+  });
 });
 
 app.use('/auth', authRoutes);
 app.use('/me', meRoutes);
 app.use('/public', publicRoutes);
+app.use('/webhooks/whatsapp', whatsappRoutes);
 
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
@@ -33,6 +46,7 @@ async function start() {
   await connectDb();
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[api] Listening on port ${PORT}`);
+    console.log(`[api] WhatsApp bot: ${isConfigured() ? 'configured' : 'dry-run (set WHATSAPP_TOKEN)'}`);
   });
 }
 
