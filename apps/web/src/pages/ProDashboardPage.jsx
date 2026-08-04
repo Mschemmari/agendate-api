@@ -28,6 +28,7 @@ export default function ProDashboardPage() {
   const navigate = useNavigate();
   const [me, setMe] = useState(null);
   const [link, setLink] = useState('');
+  const [whatsappUrlBot, setWhatsappUrlBot] = useState('');
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -45,14 +46,17 @@ export default function ProDashboardPage() {
         ]);
         setEntries(waitlist);
         setLink(booking.url || '');
+        setWhatsappUrlBot(booking.whatsappUrl || '');
       } catch (inner) {
         // Waitlist/link pueden fallar si la API aún no tiene el endpoint deployado.
         setEntries([]);
         try {
           const booking = await getBookingLink();
           setLink(booking.url || '');
+          setWhatsappUrlBot(booking.whatsappUrl || '');
         } catch {
           setLink('');
+          setWhatsappUrlBot('');
         }
         if (!/404|not found/i.test(inner.message)) {
           setError(inner.message);
@@ -116,9 +120,6 @@ export default function ProDashboardPage() {
           <div>
             <p className="brand">Agendate</p>
             <h1>{me?.name || 'Profesional'}</h1>
-            <p className="muted">
-              Código WhatsApp: <code>{me?.slug}</code>
-            </p>
           </div>
           <button type="button" className="ghost-btn" onClick={logout}>
             Salir
@@ -137,6 +138,11 @@ export default function ProDashboardPage() {
             {link && (
               <a className="ghost" href={link} target="_blank" rel="noreferrer">
                 Abrir página pública
+              </a>
+            )}
+            {whatsappUrlBot && (
+              <a className="ghost" href={whatsappUrlBot} target="_blank" rel="noreferrer">
+                WhatsApp (mensaje listo)
               </a>
             )}
           </div>

@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth, useBookingLink, useNewAppointment, useWaitlist } from '../hooks';
+import { useBookingLink, useNewAppointment, useWaitlist } from '../hooks';
 import { colors, spacing, typography } from '../theme';
 import { formatDateLabel, formatTime } from '../utils/date';
 import { whatsappUrl } from '../utils/phone';
@@ -32,7 +32,6 @@ export default function NewAppointmentScreen({ navigation }) {
   });
   const link = useBookingLink();
   const waitlist = useWaitlist();
-  const { professional } = useAuth();
 
   return (
     <ScrollView
@@ -48,15 +47,13 @@ export default function NewAppointmentScreen({ navigation }) {
       <Pressable
         style={styles.linkBtn}
         onPress={link.shareWhatsApp}
-        disabled={link.loading || !link.url}
+        disabled={link.loading || (!link.whatsappDeepLink && !link.url)}
       >
         <Ionicons name="logo-whatsapp" size={22} color={colors.accent} />
         <View style={styles.linkBtnText}>
           <Text style={styles.linkBtnTitle}>Enviar por WhatsApp</Text>
           <Text style={styles.linkBtnHint}>
-            {professional?.slug
-              ? `Código bot: ${professional.slug}`
-              : 'Link de reservas al cliente'}
+            Link al bot con el mensaje ya armado
           </Text>
         </View>
         <Ionicons name="share-outline" size={18} color={colors.muted} />

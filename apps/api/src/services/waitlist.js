@@ -136,10 +136,22 @@ async function offerNextOnSlotFreed({ professional, freedStartsAt }) {
       hour: '2-digit',
       minute: '2-digit',
     });
+    const WhatsAppSession = require('../models/WhatsAppSession');
+    WhatsAppSession.findOneAndUpdate(
+      { waId: entry.phone },
+      {
+        waId: entry.phone,
+        professionalId: professional._id,
+        step: 'offered',
+        draft: {},
+      },
+      { upsert: true }
+    ).catch(() => {});
+
     sendText(
       entry.phone,
       `Hola ${entry.name}! Se liberó un lugar (${when}) con ${professional.name}.\n` +
-        `Estás primero en la lista de espera. Escribí el código *${professional.slug}* para agendar ahora.`
+        `Estás primero en la lista de espera. Respondé *sí* para ver horarios y agendar.`
     ).catch(() => {});
   }
 

@@ -14,6 +14,7 @@ function productionUrl(slug, apiUrl) {
 
 export function useBookingLink() {
   const [url, setUrl] = useState('');
+  const [whatsappDeepLink, setWhatsappDeepLink] = useState('');
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -23,6 +24,7 @@ export function useBookingLink() {
       .then((data) => {
         const next = productionUrl(data.slug, data.url);
         setUrl(next);
+        setWhatsappDeepLink(data.whatsappUrl || '');
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -47,19 +49,34 @@ export function useBookingLink() {
     });
   }
 
+  /** Comparte el chat del bot con mensaje ya cargado para el cliente. */
   async function shareWhatsApp() {
-    if (!url) return;
-    const wa = whatsappUrl(
-      null,
-      `Hola! Reservá tu turno acá: ${url}`
-    );
+    const deepLink = whatsappDeepLink;
+    const shareText = deepLink
+      ? `Hola! Para sacar un turno tocá este link y enviá el mensaje:\n${deepLink}`
+      : url
+        ? `Hola! Reservá tu turno acá: ${url}`
+        : null;
+
+    if (!shareText) return;
+
+    const wa = whatsappUrl(null, shareText);
     const can = await Linking.canOpenURL(wa);
     if (!can) {
-      await share();
+      await Share.share({ message: shareText });
       return;
     }
     await Linking.openURL(wa);
   }
 
-  return { url, loading, message, error, copy, share, shareWhatsApp };
+  return {
+    url,
+    whatsappDeepLink,
+    loading,
+    message,
+    error,
+    copy,
+    share,
+    shareWhatsApp,
+  };
 }

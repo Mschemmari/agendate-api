@@ -262,15 +262,14 @@ export default function BookingPage() {
       <main className="shell">
         <div className="card success">
           <p className="brand">Agendate</p>
-          <h1>Ya estás en la lista</h1>
+          <h1>Ya estás en la lista de espera</h1>
           <p>
             Quedaste en el lugar <strong>#{waitlistDone.position}</strong> con{' '}
             <strong>{waitlistDone.professionalName}</strong>.
           </p>
           <p className="muted">
-            La lista es por si alguien cancela. Te avisamos automáticamente en
-            orden de llegada cuando se libere un lugar; no garantiza un día
-            exacto.
+            Si alguien cancela, te avisamos automáticamente en orden de llegada
+            cuando se libere un lugar; no garantiza un día exacto.
           </p>
         </div>
       </main>
@@ -326,6 +325,10 @@ export default function BookingPage() {
           {profile?.service?.price > 0
             ? ` · $${Number(profile.service.price).toLocaleString('es-AR')}`
             : ''}
+        </p>
+        <p className="hint-banner">
+          Si no hay turnos disponibles, podés anotarte en la lista de espera:
+          elegí un día sin horarios y te avisamos si alguien cancela.
         </p>
 
         {error && <p className="error">{error}</p>}
@@ -401,14 +404,16 @@ export default function BookingPage() {
               <p className="muted">Cargando…</p>
             ) : daySlots.length === 0 ? (
               <div className="waitlist-box">
+                <p className="waitlist-title">Lista de espera</p>
                 <p className="muted">
-                  Sin horarios este día. Si querés, anotate en la lista: si
+                  No hay turnos este día. Anotate en la lista de espera: si
                   alguien cancela, te avisamos automáticamente en orden de
                   llegada.
                 </p>
                 {profile?.waitingCount > 0 && (
                   <p className="muted waitlist-soft">
-                    Ya hay personas en la fila; te avisamos cuando te toque.
+                    Ya hay personas en la lista de espera; te avisamos cuando te
+                    toque.
                   </p>
                 )}
                 <form className="form waitlist-form" onSubmit={onWaitlistSubmit}>
@@ -446,7 +451,9 @@ export default function BookingPage() {
                     />
                   </label>
                   <button className="btn secondary" type="submit" disabled={waitlistSubmitting}>
-                    {waitlistSubmitting ? 'Anotando…' : 'Anotarme en la lista'}
+                    {waitlistSubmitting
+                      ? 'Anotando…'
+                      : 'Anotarme en la lista de espera'}
                   </button>
                 </form>
               </div>

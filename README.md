@@ -49,16 +49,17 @@ npm start
 
 ## WhatsApp bot (reserva sin link)
 
-El cliente escribe al número de WhatsApp Business de Agendate:
+El profesional comparte un link `wa.me` con el mensaje ya cargado, por ejemplo:
+`Hola! Quiero sacar un turno con Mariano`.
 
-1. Manda el **código/slug** del profesional (ej. `maria-lopez`)
-2. Elige un horario por número
-3. Confirma nombre y email → el bot agenda solo
+1. El cliente toca el link, envía el mensaje (o escribe cualquier cosa)
+2. El bot responde con la bienvenida y los horarios disponibles
+3. Elige un número → nombre → email → turno confirmado
 4. Si no hay lugar: escribe `lista` y queda en lista de espera FIFO
 
 Webhook Meta: `GET/POST https://<tu-api>/webhooks/whatsapp`
 
-Variables: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`.
+Variables: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_PHONE` (número público para el link), `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`.
 
 Sin token, la API hace dry-run (log en consola).
 

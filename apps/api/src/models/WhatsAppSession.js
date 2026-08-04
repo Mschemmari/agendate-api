@@ -11,7 +11,10 @@ const whatsappSessionSchema = new mongoose.Schema(
     step: {
       type: String,
       enum: [
-        'need_slug',
+        'need_professional',
+        'need_slug', // legacy
+        'pick_professional',
+        'offered',
         'show_slots',
         'need_name',
         'need_email',
@@ -19,7 +22,7 @@ const whatsappSessionSchema = new mongoose.Schema(
         'waitlist_email',
         'done',
       ],
-      default: 'need_slug',
+      default: 'need_professional',
     },
     draft: { type: mongoose.Schema.Types.Mixed, default: {} },
   },

@@ -1,13 +1,18 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
 import { scheduleAppointmentReminder } from '../notifications';
 import { mergeDatePart, mergeTimePart, nextHalfHour } from '../utils/datetime';
+import { getCached, invalidateCache, setCached } from '../utils/cache';
+
+const PATIENTS_KEY = 'patients';
+const TTL_MS = 60_000;
 
 export function useNewAppointment({ onCreated } = {}) {
-  const [patients, setPatients] = useState([]);
+  const cached = getCached(PATIENTS_KEY, TTL_MS);
+  const [patients, setPatients] = useState(() => cached || []);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -15,11 +20,27 @@ export function useNewAppointment({ onCreated } = {}) {
   const [iosPicker, setIosPicker] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const fetching = useRef(false);
 
-  const loadPatients = useCallback(() => {
-    api('/me/patients')
-      .then(setPatients)
-      .catch((err) => setError(err.message));
+  const loadPatients = useCallback(async ({ force = false } = {}) => {
+    if (!force) {
+      const hit = getCached(PATIENTS_KEY, TTL_MS);
+      if (hit) {
+        setPatients(hit);
+        return;
+      }
+    }
+    if (fetching.current) return;
+    fetching.current = true;
+    try {
+      const data = await api('/me/patients');
+      setPatients(data);
+      setCached(PATIENTS_KEY, data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      fetching.current = false;
+    }
   }, []);
 
   useFocusEffect(
@@ -93,7 +114,8 @@ export function useNewAppointment({ onCreated } = {}) {
       setEmail('');
       setPhone('');
       setWhen(nextHalfHour());
-      loadPatients();
+      invalidateCache(PATIENTS_KEY);
+      await loadPatients({ force: true });
       onCreated?.();
     } catch (err) {
       setError(err.message);

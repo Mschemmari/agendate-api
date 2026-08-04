@@ -27,9 +27,18 @@ router.get('/booking-link', (req, res) => {
   const webUrl = (
     process.env.WEB_URL || 'https://agendate-api-web.vercel.app'
   ).replace(/\/$/, '');
+  const phone = String(process.env.WHATSAPP_PHONE || '').replace(/\D/g, '');
+  const whatsappText = `Hola! Quiero sacar un turno con ${req.professional.name}`;
+  const whatsappUrl = phone
+    ? `https://wa.me/${phone}?text=${encodeURIComponent(whatsappText)}`
+    : null;
+
   res.json({
     slug: req.professional.slug,
     url: `${webUrl}/u/${req.professional.slug}`,
+    whatsappPhone: phone || null,
+    whatsappText,
+    whatsappUrl,
   });
 });
 
