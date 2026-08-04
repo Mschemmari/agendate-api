@@ -2,6 +2,7 @@ import { Routes, Route, Link } from 'react-router-dom';
 import BookingPage from './pages/BookingPage.jsx';
 import ProLoginPage from './pages/ProLoginPage.jsx';
 import ProDashboardPage from './pages/ProDashboardPage.jsx';
+import PrivacyPage from './pages/PrivacyPage.jsx';
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
       <Route path="/u/:slug" element={<BookingPage />} />
       <Route path="/pro/login" element={<ProLoginPage />} />
       <Route path="/pro" element={<ProDashboardPage />} />
+      <Route path="/privacidad" element={<PrivacyPage />} />
       <Route
         path="*"
         element={
