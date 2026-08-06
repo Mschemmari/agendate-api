@@ -130,18 +130,34 @@ async function resetSession(session) {
   await session.save();
 }
 
+function bookingLink(professional) {
+  const base = String(
+    process.env.WEB_URL || 'https://agendate-api-web.vercel.app'
+  ).replace(/\/$/, '');
+  const slug = professional?.slug;
+  if (!slug) return null;
+  return `${base}/u/${slug}`;
+}
+
 function slotsBody(professional, slots) {
+  const link = bookingLink(professional);
+  const moreHint = link
+    ? `\n\nSi querés ver *más días y horarios*: ${link}`
+    : '';
+
   if (!slots.length) {
     return (
       `No hay turnos libres con ${professional.name} en los próximos días.\n\n` +
-      `Respondé *lista* para anotarte en lista de espera, o *cambiar* para empezar de nuevo.`
+      `Respondé *lista* para anotarte en lista de espera, o *cambiar* para empezar de nuevo.` +
+      (link ? `\n\nO mirá el calendario completo: ${link}` : '')
     );
   }
   const lines = slots.map((s, i) => formatSlotLine(s, i));
   return (
     `Turnos disponibles:\n\n${lines.join('\n')}\n\n` +
     `Respondé el *número* del horario.\n` +
-    `Si no te sirve ninguno: *lista* (espera) o *cambiar*.`
+    `Si no te sirve ninguno: *lista* (espera) o *cambiar*.` +
+    moreHint
   );
 }
 
