@@ -13,14 +13,14 @@ function digits(value) {
 
 /**
  * Meta's test allow-list often stores AR mobiles with the old "15" local prefix
- * (54115…) while WhatsApp webhooks send wa_id with the "9" (54911…).
- * 549 + area + subscriber → 54 + area + 15 + subscriber
+ * (54 + area + 15 + subscriber) while webhooks send wa_id with "9"
+ * (54 + 9 + area + subscriber).
  */
 function argentinaAllowListVariant(waId) {
   const n = digits(waId);
-  // Most common (CABA/GBA): 54911 + 8 digits → 54115 + 8 digits
+  // CABA/GBA: 54911 + 8 digits → 54 + 11 + 15 + 8 digits
   const ba = n.match(/^54911(\d{8})$/);
-  if (ba) return `54115${ba[1]}`;
+  if (ba) return `541115${ba[1]}`;
   // 2-digit area + 8 subscriber
   const m2 = n.match(/^549(\d{2})(\d{8})$/);
   if (m2) return `54${m2[1]}15${m2[2]}`;
