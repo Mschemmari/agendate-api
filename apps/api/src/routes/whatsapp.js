@@ -50,6 +50,14 @@ router.post('/', async (req, res) => {
     const change = entry?.changes?.[0];
     const value = change?.value;
     const messages = value?.messages;
+    const statuses = value?.statuses;
+    console.log('[whatsapp] webhook POST', {
+      field: change?.field,
+      messages: messages?.length || 0,
+      statuses: statuses?.length || 0,
+      types: messages?.map((m) => m.type) || [],
+      from: messages?.[0]?.from || null,
+    });
     if (!messages?.length) return;
 
     for (const msg of messages) {
